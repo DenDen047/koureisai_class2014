@@ -1,4 +1,4 @@
-
+#include<stdio.h>
 
 
 // モータの調整用変数
