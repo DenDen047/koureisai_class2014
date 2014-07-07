@@ -21,17 +21,10 @@ void setup(){
 }
 
 void draw(){
+
 }
 
 
-
-void mousePressed(){//マウスボタンを押したら
-  port.write('H');  //「H」を送信（点灯）
-}
-
-void mouseReleased(){//マウスボタンを放したら
-  port.write('L');   //「L」を送信（消灯）
-}
 
 
 
