@@ -1,10 +1,41 @@
 #include <math.h>
 #include "mbed.h"
+// #include "XBee.h"
 
 #define PI 3.14159265358979 // 円周率πの定義
+#define NODAMAGETIME 1.0
+
+// プロトタイプ宣言
+void MOVE(char direction, char lr);
+
+DigitalIn  SenserIn(p5);	// 受光センサからのinput
+DigitalOut SenserOut(p6);	// 受光センサにoutput
+DigitalOut Laser(p7);		// レーザーにoutput
+
+// モータPWMの制御用変数
+PwmOut PwmMoterFL(p21), PwmMoterFR(p22);
+PwmOut PwmMoterBL(p23), PwmMoterBR(p24);
+PwmOut PwmMoterCL(p25), PwmMoterCR(p26);
+
+Timer timerNoDamage;	// 無敵状態のためのタイマー
+Timer timerLaser;		// レーザー用タイマー
+
+// シリアル通信について
+Serial XbeeRobo(p13, p14);	// tx, rx
+
+// XBeeの設定
+// XBee   XbeeRobo(p13, p14);	// tx, rx
 
 
 
+// ロボットの状態を表す構造体
+typedef struct {
+	bool canActive;	// 結果は出てないか？
+	bool noDamage;  // 無敵状態かどうか？
+	bool canLaser;	// レーザーは打てるか？
+	int  hp;		// HP
+	int  bullet;	// 残弾数
+} RoboStatus;
 
 
 // モータの個体値調整用変数
@@ -12,62 +43,156 @@ float mFL = 0, mFR = 0;
 float mCL = 0, mCR = 0;
 float mBL = 0, mBR = 0;
 
-// モータPWMの制御用変数
-PwmOut PwmMoterFL = 0,  PwmMoterFR = 0;
-PwmOut PwmMoterBL = 0,  PwmMoterBR = 0;
-PwmOut PwmMoterCL = 0,  PwmMoterCR = 0;
 
 
 
 
-void Move(int angle)
+int main(void)
+{
+	XbeeRobo.baud(9600);
+	RoboStatus robo;	// ロボットの初期状態
+		robo.canActive = true;
+		robo.noDamage  = false;
+		robo.canLaser  = true;
+		robo.hp        = 10;
+		robo.bullet    = 100;
+	char pcData[] = "nnnn";	// 受信データ格納用
+							// {ジョイスティック, LR, レーザー, コマンド}
+	char c;
+	int i=0;	// ループカウント用変数　
+
+
+
+
+	while(1) {
+		if (!robo.canActive) break;	// ロボットが動く必要がない場合、ループを抜ける
+		i = (i<10) ? ++i : 0;	// ループ回数を記録
+
+
+		// 操作データを受信して、モータを制御（シリアル通信）
+		for(int count=0 ;; count++) {
+			if (XbeeRobo.readable()) {
+				c = XbeeRobo.getc();
+				pcData[count] = c;
+				if (c == '\0') break;
+			} else break;
+		}
+
+
+		// ダーメジに関する処理
+		if (i==0) {
+			timerNoDamage.stop();
+			if (timerNoDamage.read()>NODAMAGETIME) {	// 無敵状態がNODAMAGETIME秒以上続いていたら、無敵状態終了
+				timerNoDamage.reset();
+				robo.noDamage = false;
+			} else timerNoDamage.start();	// 違ったら、無敵状態継続
+		}
+		if (SenserIn && !robo.noDamage) {	// ダメージ処理
+			if (--robo.hp < 1) {	// 負けたときの処理
+				XbeeRobo.putc('L');
+				robo.canActive = false;
+				break;
+			}
+			robo.noDamage = true;
+			timerNoDamage.start();	// ダーメジを受けたので一時的に無敵状態
+		}
+
+
+		MOVE(pcData[0],  pcData[1]);	// 0:ジョイスティック  1:LR
+
+		// レーザーコマンドの処理
+		if (pcData[2]=='l') {
+			if (robo.canLaser) {
+				Laser = 1;
+				timerLaser.start();
+			} else {
+				timerLaser.stop();
+				if (timerLaser.read() > 0.5) {
+					Laser = 0;
+					robo.canLaser = true;
+					timerLaser.reset();
+				} else {
+					timerLaser.start();
+				}
+			}
+		}
+
+		// コマンドの処理
+		switch (pcData[3]) {
+			default:
+				break;
+		}
+	}
+	return 0;
+}
+
+
+
+
+/*---  モータの制御関数  ---*/
+void MOVE(char direction, char lr)
 {
 	float fl, fr;
 	float cl, cr;
 	float bl, br;
 
-	// 角度によるモータの制御
-	switch (angle) {
-		case 1:
-			fl =  1,  fr =  1;
-			cl =  1,  cr =  1;
-			bl = -1,  br = -1;
+	// 進行方向コマンド -> モータ制御
+	switch (direction) {
+		case 'n':	// none
+			fl =  0.0,  fr =  0.0;
+			cl =  0.0,  cr =  0.0;
+			bl =  0.0,  br =  0.0;
 			break;
-		case 2:
-			fl =  0,  fr =  1;
-			cl =  0,  cr =  0;
-			bl = -1,  br =  0;
+		case 'w':	// 前
+			fl =  1.0,  fr =  1.0;
+			cl =  1.0,  cr =  1.0;
+			bl = -1.0,  br = -1.0;
 			break;
-		case 3:
-			fl = -1,  fr =  1;
-			cl =  0,  cr =  0;
-			bl = -1,  br =  1;
+		case 'e':	// 右斜め前
+			fl =  0.0,  fr =  1.0;
+			cl =  0.0,  cr =  0.0;
+			bl = -1.0,  br =  0.0;
 			break;
-		case 4:
-			fl = -1,  fr =  0;
-			cl =  0,  cr =  0;
-			bl =  0,  br =  1;
+		case 'd':	// 右
+			fl = -1.0,  fr =  1.0;
+			cl =  0.0,  cr =  0.0;
+			bl = -1.0,  br =  1.0;
 			break;
-		case 5:
-			fl = -1,  fr = -1;
-			cl = -1,  cr = -1;
-			bl =  1,  br =  1;
+		case 'c':	// 右斜め後ろ
+			fl = -1.0,  fr =  0.0;
+			cl =  0.0,  cr =  0.0;
+			bl =  0.0,  br =  1.0;
 			break;
-		case 6:
-			fl =  0,  fr = -1;
-			cl =  0,  cr =  0;
-			bl =  1,  br =  0;
+		case 'x':	// 後ろ
+			fl = -1.0,  fr = -1.0;
+			cl = -1.0,  cr = -1.0;
+			bl =  1.0,  br =  1.0;
 			break;
-		case 7:
-			fl =  1,  fr = -1;
-			cl =  0,  cr =  0;
-			bl =  1,  br = -1;
+		case 'z':	// 左斜め後ろ
+			fl =  0.0,  fr = -1.0;
+			cl =  0.0,  cr =  0.0;
+			bl =  1.0,  br =  0.0;
 			break;
-		case 8:
-			fl =  1,  fr =  0;
-			cl =  0,  cr =  0;
-			bl =  0,  br = -1;
+		case 'a':	// 左
+			fl =  1.0,  fr = -1.0;
+			cl =  0.0,  cr =  0.0;
+			bl =  1.0,  br = -1.0;
 			break;
+		case 'q':	// 左斜め前
+			fl =  1.0,  fr =  0.0;
+			cl =  0.0,  cr =  0.0;
+			bl =  0.0,  br = -1.0;
+			break;
+		default:
+			break;
+	}
+
+	// 旋回コマンド処理
+	switch (lr) {
+		case 'l':
+			cl -= 0.5;  cr += 0.5;  break;
+		case 'r':
+			cr += 0.5;  cr -= 0.5;  break;
 		default:
 			break;
 	}
@@ -76,10 +201,10 @@ void Move(int angle)
 	PwmMoterFL = fl * mFL;    PwmMoterFR = fr * mFR;
 	PwmMoterCL = cl * mCL;    PwmMoterCR = cr * mCR;
 	PwmMoterBL = bl * mBL;    PwmMoterBR = br * mBR;
-
-
-	return 0;
 }
+
+
+
 
 
 
