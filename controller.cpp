@@ -13,10 +13,10 @@ AnalogIn  LR(p9), UD(p10);
 
 
 // シリアル通信について
-Serial PCsend(p13, p14);	// tx, rx
+Serial PCsend(p16, p15);	// tx, rx
 
 // XBeeの設定
-// XBee   PCsend(p13, p14);	// tx, rx
+// XBee   PCsend(p16, p15);	// tx, rx
 
 
 
@@ -50,9 +50,14 @@ int main(void)
 		else if (/* condition */)  contrller[4] = 'a';
 		else if (/* condition */)  contrller[4] = 'q';
 
+
+		// PCへ、データを送信
+		while (!PCsend.readable()) {
+			PCsend.putc('O');	// 「O」の文字を送信
+			if (PCsend.getc()=='K') PCsend.printf("%s", contrller); // 返事があればデータを送る
+		}
+
 	}
-
-
 
 	return 0;
 }
