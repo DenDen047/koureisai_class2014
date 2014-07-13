@@ -19,7 +19,7 @@ Serial port_xbee;
 const int portrate = 9600;
 
 
-char[] roboData="nnnn";
+
 
 
 
@@ -43,7 +43,41 @@ void serialEvent(Serial p) {
 
 		}
 	}
+	if (p == port_xbee) {
+
+	}
 }
+
+
+
+
+
+// ロボットに関するクラス
+public class Robo {
+	char[4+1] ControlData;	// コントローラからの受信データ格納用
+							// {ジョイスティック, LR, レーザー, コマンド, null}
+	char[5+1] RoboStatus;	// ロボットの状態
+							// {動けるか, 無敵状態か, レーザーを打てるか, HP, 残段数, null}
+
+	void SendRoboData(void) {
+		for (int i=0; i<5; i++) {
+			port_xbee.write(ControlData[i]);
+		}
+	}
+
+	void ReceiveRoboStatus(void) {
+		while (c==null) {
+			RoboStatus[i] = port_xbee.read();
+		}
+	}
+}
+
+
+
+
+
+
+
 
 
 

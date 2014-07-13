@@ -56,8 +56,8 @@ int main(void)
 		robo.canLaser  = true;
 		robo.hp        = 10;
 		robo.bullet    = 100;
-	char pcData[] = "nnnn";	// 受信データ格納用
-							// {ジョイスティック, LR, レーザー, コマンド}
+	char pcData[4+1] = "nnnn";	// 受信データ格納用
+								// {ジョイスティック, LR, レーザー, コマンド}
 	char c;
 	int i=0;	// ループカウント用変数　
 
@@ -65,16 +65,16 @@ int main(void)
 
 
 	while(1) {
-		if (!robo.canActive) break;	// ロボットが動く必要がない場合、ループを抜ける
 		i = (i<10) ? ++i : 0;	// ループ回数を記録
 
 
 		// 操作データを受信して、モータを制御（シリアル通信）
+		// 割り込み式にした方がいいかも
 		for(int count=0 ;; count++) {
 			if (XbeeRobo.readable()) {
 				c = XbeeRobo.getc();
 				pcData[count] = c;
-				if (c == '\0') break;
+				if (c == '\0' && pcData[5] == '\0') break;	// nullの位置が一致しているかを確認して同期をとる
 			} else break;
 		}
 
@@ -98,6 +98,26 @@ int main(void)
 		}
 
 
+		for(int count=0 ;; count++) {
+			if (XbeeRobo.readable()) {
+				c = XbeeRobo.getc();
+				pcData[count] = c;
+				if (c == '\0' && pcData[5] == '\0') break;	// nullの位置が一致しているかを確認して同期をとる
+			} else break;
+		}
+
+		// ロボットの状態をPCに送信
+		XbeeRobo.putc(robo.canActive);
+		XbeeRobo.putc(robo.noDamage);
+		XbeeRobo.putc(robo.canLaser);
+		XbeeRobo.putc(robo.hp);
+		XbeeRobo.putc(robo.bullet);
+		XbeeRobo.putc('\0');
+
+
+
+		if (!robo.canActive) continue;	// ロボットが動く必要がない場合、アクチュエータを動かさない
+
 		MOVE(pcData[0],  pcData[1]);	// 0:ジョイスティック  1:LR
 
 		// レーザーコマンドの処理
@@ -119,6 +139,7 @@ int main(void)
 
 		// コマンドの処理
 		switch (pcData[3]) {
+			case 'n':
 			default:
 				break;
 		}
