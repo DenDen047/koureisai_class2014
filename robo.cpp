@@ -1,12 +1,13 @@
 #include <math.h>
 #include "mbed.h"
 // #include "XBee.h"
-
 #define PI 3.14159265358979 // 円周率πの定義
-#define NODAMAGETIME 1.0
+#define NODAMAGETIME 1.0	// 無敵状態の時間
 
 // プロトタイプ宣言
 void MOVE(char direction, char lr);
+
+
 
 DigitalIn  SenserIn(p5);	// 受光センサからのinput
 DigitalOut SenserOut(p6);	// 受光センサにoutput

@@ -38,11 +38,12 @@ void draw(){
 
 
 void serialEvent(Serial p) {
+	// コントローラからの通信を受信したとき
 	if (p == port_mbed) {
-		while (p.available()) {
 
-		}
 	}
+
+	// ロボットからの通信を受信したとき
 	if (p == port_xbee) {
 
 	}
