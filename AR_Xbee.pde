@@ -16,7 +16,7 @@ import xbee.XBeeReader;
 // ポートのインスタンス
 Serial port_mbed;
 Serial port_xbee;
-const int portrate = 9600;
+const　unsigned int portrate = 9600;
 
 
 // クラスの宣言
