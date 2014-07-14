@@ -46,7 +46,13 @@ void serialEvent(Serial p) {
 
 	// ロボットからの通信を受信したとき
 	if (p == port_xbee) {
-
+		while (port_xbee.available() > 5) {}	// 6コすべてのデータが届くまで待つ
+		// 受け取ったデータを代入
+		robo.canActive = port_xbee.read();
+		robo.noDamage  = port_xbee.read();
+		robo.canLaser  = port_xbee.read();
+		robo.hp        = port_xbee.read();
+		robo.bullet    = port_xbee.read();
 	}
 }
 
@@ -56,11 +62,16 @@ void serialEvent(Serial p) {
 
 // ロボットに関するクラス
 public class Robo {
+	// コントローラに関する変数
 	char[4+1] ControlData;	// コントローラからの受信データ格納用
 							// {ジョイスティック, LR, レーザー, コマンド, null}
-	char[5+1] RoboStatus;	// ロボットの状態
-							// {動けるか, 無敵状態か, レーザーを打てるか, HP, 残段数, null}
 
+	// ロボットの状態に関する変数
+	boolean canActive;	// 結果は出てないか？
+	boolean noDamage;	// 無敵状態かどうか？
+	boolean canLaser;	// レーザーは打てるか？
+	int     hp;			// HP
+	int     bullet;		// 残弾数
 }
 
 
