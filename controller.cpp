@@ -24,38 +24,50 @@ Serial PCsend(p16, p15);	// tx, rx
 int main(void)
 {
 	float lr, ud;
-	char[] contrller = "nnnnn";	// 0:コマンド
-									// 1:レーザー
-									// 2:L
-									// 3:R
-									// 4:方向
-									// 5:null
+	bool  l, r;
+	bool  laser;
+	bool  command;
+	char[] contrller = "nnnn";	// 0:方向
+								// 1:LR
+								// 2:レーザー
+								// 3:コマンド
+								// 4:null
 
 	while(1) {
-		contrller[0] = (SWcommand)?'H':0;
-		contrller[1] = (SWlaser)  ?'H':0;
-		contrller[2] = (SWl)      ?'H':0;
-		contrller[3] = (SWr)      ?'H':0;
-		lr = LR;
-		ud = UD;
+		// 測定したスイッチの状態を、ひとまず代入
+		lr = LR;   ud = UD;
+		l = SWl;   r = SWr;
+		laser = SWlaser;
+		command = SWcommand;
 
 		// ジョイスティックの値を処理
-		     if (/* condition */)  contrller[4] = 'n';
-		else if (/* condition */)  contrller[4] = 'w';
-		else if (/* condition */)  contrller[4] = 'e';
-		else if (/* condition */)  contrller[4] = 'd';
-		else if (/* condition */)  contrller[4] = 'c';
-		else if (/* condition */)  contrller[4] = 'x';
-		else if (/* condition */)  contrller[4] = 'z';
-		else if (/* condition */)  contrller[4] = 'a';
-		else if (/* condition */)  contrller[4] = 'q';
+		     if (/* condition */)  contrller[0] = 'n';
+		else if (/* condition */)  contrller[0] = 'w';
+		else if (/* condition */)  contrller[0] = 'e';
+		else if (/* condition */)  contrller[0] = 'd';
+		else if (/* condition */)  contrller[0] = 'c';
+		else if (/* condition */)  contrller[0] = 'x';
+		else if (/* condition */)  contrller[0] = 'z';
+		else if (/* condition */)  contrller[0] = 'a';
+		else if (/* condition */)  contrller[0] = 'q';
 
+		// LRの処理
+		if (!l && !r) {			// L:off  R:on
+			contrller[1] = 0;
+		} else if (l && !r) {	// L:on   R:off
+			contrller[1] = -1;
+		} else if (!l && r) {	// L:off  R:on
+			contrller[1] = 1;
+		} else if (l && r) {	// L:on   R:on
+			contrller[1] = 0;
+		} else {}
+
+		// レーザーとコマンドのスイッチの処理
+		contrller[2] = (SWlaser)  ?'H':0;
+		contrller[3] = (SWcommand)?'H':0;
 
 		// PCへ、データを送信
-		while (!PCsend.readable()) {
-			PCsend.putc('O');	// 「O」の文字を送信
-			if (PCsend.getc()=='K') PCsend.printf("%s", contrller); // 返事があればデータを送る
-		}
+		PCsend.printf("%s", contrller); // 返事があればデータを送る
 
 	}
 
