@@ -19,8 +19,8 @@ Serial port_xbee;
 const int portrate = 9600;
 
 
-
-
+// クラスの宣言
+Robo robo;
 
 
 void setup(){
@@ -40,7 +40,8 @@ void draw(){
 void serialEvent(Serial p) {
 	// コントローラからの通信を受信したとき
 	if (p == port_mbed) {
-
+		while (!(port_mbed.available() > 4)) {}	// 5コすべてのデータが届くまで待つ
+		for (int i=0; i<6; i++) robo.ControlData[i] = port_mbed.read();
 	}
 
 	// ロボットからの通信を受信したとき
@@ -60,17 +61,6 @@ public class Robo {
 	char[5+1] RoboStatus;	// ロボットの状態
 							// {動けるか, 無敵状態か, レーザーを打てるか, HP, 残段数, null}
 
-	void SendRoboData(void) {
-		for (int i=0; i<5; i++) {
-			port_xbee.write(ControlData[i]);
-		}
-	}
-
-	void ReceiveRoboStatus(void) {
-		while (c==null) {
-			RoboStatus[i] = port_xbee.read();
-		}
-	}
 }
 
 
