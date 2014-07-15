@@ -32,7 +32,10 @@ void setup(){
 
 
 void draw(){
-
+	if (robo.ControlData[5] != null) continue;
+	for (int i=0; i<6; i++) {
+		port_xbee.write(robo.ControlData[i]);
+	}
 }
 
 
@@ -57,6 +60,24 @@ void serialEvent(Serial p) {
 }
 
 
+// キーが押されるたびに呼び出される関数
+void keyPressed() {
+	if (key=='n' ||
+	    key=='w' ||
+	    key=='e' ||
+	    key=='d' ||
+	    key=='c' ||
+	    key=='x' ||
+	    key=='z' ||
+	    key=='a' ||
+	    key=='q') {
+		robo.ControlData[0] = key;
+	} else if (key=='Q') {
+		robo.ControlData[1] = -1;
+	} else if (key=='E') {
+		robo.ControlData[1] = 1;
+	}
+}
 
 
 
@@ -65,6 +86,7 @@ public class Robo {
 	// コントローラに関する変数
 	char[4+1] ControlData;	// コントローラからの受信データ格納用
 							// {ジョイスティック, LR, レーザー, コマンド, null}
+	char[4+1] RoboSendData;	// ロボットに送信する用のデータ
 
 	// ロボットの状態に関する変数
 	boolean canActive;	// 結果は出てないか？
